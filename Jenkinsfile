@@ -1,39 +1,57 @@
 pipeline {
-    agent { label "dev-server"}
-    
+    agent any
+
+    environment {
+        IMAGE_NAME = "node-app-test-new"
+    }
+
     stages {
-        
-        stage("code"){
-            steps{
-                git url: "https://github.com/LondheShubham153/node-todo-cicd.git", branch: "master"
-                echo 'bhaiyya code clone ho gaya'
+
+        stage("Code Checkout") {
+            steps {
+                checkout([$class: 'GitSCM',
+                    branches: [[name: '*/master']],
+                    extensions: [[$class: 'CloneOption', depth: 1, shallow: true]],
+                    userRemoteConfigs: [[url: 'https://github.com/rahulchaubey91/node-todo-cicd.git']]
+                ])
+                echo 'Code clone ho gaya (shallow)'
             }
         }
-        stage("build and test"){
-            steps{
-                sh "docker build -t node-app-test-new ."
-                echo 'code build bhi ho gaya'
+
+        stage("Build & Test") {
+            steps {
+                sh "docker build --cache-from ${env.IMAGE_NAME} -t ${env.IMAGE_NAME} ."
+                echo 'Build ho gaya (with cache)'
             }
         }
-        stage("scan image"){
-            steps{
-                echo 'image scanning ho gayi'
+
+        stage("Scan Image") {
+            steps {
+                echo 'Image scan (placeholder)'
+                // Optionally use Trivy or Anchore here
             }
         }
-        stage("push"){
-            steps{
-                withCredentials([usernamePassword(credentialsId:"dockerHub",passwordVariable:"dockerHubPass",usernameVariable:"dockerHubUser")]){
-                sh "docker login -u ${env.dockerHubUser} -p ${env.dockerHubPass}"
-                sh "docker tag node-app-test-new:latest ${env.dockerHubUser}/node-app-test-new:latest"
-                sh "docker push ${env.dockerHubUser}/node-app-test-new:latest"
-                echo 'image push ho gaya'
+
+        stage("Push to DockerHub") {
+            steps {
+                withCredentials([usernamePassword(credentialsId: "dockerHub", passwordVariable: "dockerHubPass", usernameVariable: "dockerHubUser")]) {
+                    sh """
+                        docker login -u ${dockerHubUser} -p ${dockerHubPass}
+                        docker tag ${IMAGE_NAME}:latest ${dockerHubUser}/${IMAGE_NAME}:latest
+                        docker push ${dockerHubUser}/${IMAGE_NAME}:latest
+                    """
+                    echo 'Docker image push ho gaya'
                 }
             }
         }
-        stage("deploy"){
-            steps{
-                sh "docker-compose down && docker-compose up -d"
-                echo 'deployment ho gayi'
+
+        stage("Deploy") {
+            steps {
+                sh """
+                    docker-compose pull
+                    docker-compose up -d --build
+                """
+                echo 'Deployment complete (no downtime)'
             }
         }
     }
