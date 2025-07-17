@@ -20,7 +20,7 @@ pipeline {
 
         stage("Build & Test") {
             steps {
-                sh "docker build ${env.IMAGE_NAME} -t ${env.IMAGE_NAME} ."
+                sh "docker build -t ${env.IMAGE_NAME} ."
                 echo 'Build ho gaya (with cache)'
             }
         }
