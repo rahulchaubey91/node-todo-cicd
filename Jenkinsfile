@@ -27,8 +27,11 @@ pipeline {
 
         stage("Scan Image") {
             steps {
-                echo 'Image scan (placeholder)'
-                // Optionally use Trivy or Anchore here
+                echo 'Trivy se image scan ho raha hai...'
+                sh """
+                    trivy image --exit-code 0 --severity HIGH,CRITICAL ${env.IMAGE_NAME}
+                """
+                echo 'Image scan complete'
             }
         }
 
